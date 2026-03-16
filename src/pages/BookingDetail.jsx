@@ -1,19 +1,31 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
-import api from '../services/api';
+import api, { adminArtistApi, adminBookingApi } from '../services/api';
+import toast from 'react-hot-toast';
 
 export default function BookingDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [approvedArtists, setApprovedArtists] = useState([]);
+  const [selectedArtistId, setSelectedArtistId] = useState('');
+  const [assigning, setAssigning] = useState(false);
 
-  useEffect(() => {
+  const fetchBooking = () => {
+    setLoading(true);
     api.get(`/admin/bookings/${id}`)
       .then((res) => setBooking(res.data.data))
       .catch(() => setBooking(null))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchBooking();
+    adminArtistApi.listApproved()
+      .then((res) => setApprovedArtists(res.data?.data?.artists || []))
+      .catch(() => setApprovedArtists([]));
   }, [id]);
 
   if (loading) {
@@ -39,6 +51,40 @@ export default function BookingDetail() {
   const statusBadge = (s) => {
     const map = { PENDING: 'badge-warning', CONFIRMED: 'badge-info', COMPLETED: 'badge-success', CANCELLED: 'badge-danger', REJECTED: 'badge-danger' };
     return <span className={`badge ${map[s] || 'badge-default'}`}>{s}</span>;
+  };
+
+  const handleAssignArtist = async () => {
+    if (!selectedArtistId) {
+      toast.error('Select an artist first');
+      return;
+    }
+    setAssigning(true);
+    try {
+      await adminBookingApi.assignArtist(id, {
+        artistId: selectedArtistId,
+        note: 'Assigned from booking details',
+      });
+      toast.success('Artist assigned');
+      fetchBooking();
+      setSelectedArtistId('');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to assign artist');
+    } finally {
+      setAssigning(false);
+    }
+  };
+
+  const handleUnassignArtist = async () => {
+    setAssigning(true);
+    try {
+      await adminBookingApi.unassignArtist(id);
+      toast.success('Artist unassigned');
+      fetchBooking();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to unassign artist');
+    } finally {
+      setAssigning(false);
+    }
   };
 
   return (
@@ -87,6 +133,38 @@ export default function BookingDetail() {
             <div className="detail-item">
               <div className="detail-label">Location</div>
               <div className="detail-value">{booking.artist?.location?.city || '-'}</div>
+            </div>
+            <div className="detail-item">
+              <div className="detail-label">Assigned At</div>
+              <div className="detail-value">
+                {booking.assignment?.assignedAt
+                  ? new Date(booking.assignment.assignedAt).toLocaleString('en-IN')
+                  : '-'}
+              </div>
+            </div>
+            <div className="detail-item">
+              <div className="detail-label">Assignment Source</div>
+              <div className="detail-value">{booking.assignment?.source || '-'}</div>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
+              <select value={selectedArtistId} onChange={(e) => setSelectedArtistId(e.target.value)}>
+                <option value="">Select approved artist</option>
+                {approvedArtists.map((artist) => (
+                  <option key={artist._id} value={artist._id}>
+                    {artist.name} ({artist.phone})
+                  </option>
+                ))}
+              </select>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="btn btn-primary btn-sm" onClick={handleAssignArtist} disabled={assigning}>
+                  Assign Artist
+                </button>
+                {booking.artist && (
+                  <button className="btn btn-ghost btn-sm" onClick={handleUnassignArtist} disabled={assigning}>
+                    Unassign
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>

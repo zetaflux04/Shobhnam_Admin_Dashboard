@@ -25,4 +25,16 @@ api.interceptors.response.use(
   }
 );
 
+export const adminBookingApi = {
+  assignArtist: (bookingId, payload) => api.patch(`/admin/bookings/${bookingId}/assign-artist`, payload),
+  unassignArtist: (bookingId) => api.patch(`/admin/bookings/${bookingId}/unassign-artist`),
+};
+
+export const adminArtistApi = {
+  listApproved: (params = {}) =>
+    api.get('/admin/artists', {
+      params: { page: 1, limit: 200, status: 'APPROVED', ...params },
+    }),
+};
+
 export default api;
