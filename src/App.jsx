@@ -8,6 +8,7 @@ import Artists from './pages/Artists';
 import Bookings from './pages/Bookings';
 import BookingDetail from './pages/BookingDetail';
 import Categories from './pages/Categories';
+import BankVerifications from './pages/BankVerifications';
 import Reviews from './pages/Reviews';
 import './App.css';
 
@@ -27,6 +28,7 @@ export default function App() {
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="users" element={<Users />} />
         <Route path="artists" element={<Artists />} />
+        <Route path="bank-verifications" element={<BankVerifications />} />
         <Route path="bookings" element={<Bookings />} />
         <Route path="bookings/:id" element={<BookingDetail />} />
         <Route path="categories" element={<Categories />} />

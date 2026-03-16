@@ -37,4 +37,12 @@ export const adminArtistApi = {
     }),
 };
 
+export const adminBankVerificationApi = {
+  list: (params = {}) =>
+    api.get('/admin/artists/bank-verifications', {
+      params: { page: 1, limit: 10, status: 'PENDING', ...params },
+    }),
+  review: (artistId, payload) => api.patch(`/admin/artists/${artistId}/bank-verification`, payload),
+};
+
 export default api;

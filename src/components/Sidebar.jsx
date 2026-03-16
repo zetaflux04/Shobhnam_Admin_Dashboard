@@ -1,6 +1,7 @@
 import {
     CalendarCheck,
     LayoutDashboard,
+    Landmark,
     LogOut,
     Music2,
     Star,
@@ -14,6 +15,7 @@ const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/users', label: 'Users', icon: Users },
   { to: '/artists', label: 'Artists', icon: Music2 },
+  { to: '/bank-verifications', label: 'Bank Verifications', icon: Landmark },
   { to: '/bookings', label: 'Bookings', icon: CalendarCheck },
   { to: '/categories', label: 'Categories', icon: Tag },
   { to: '/reviews', label: 'Reviews', icon: Star },
