@@ -32,6 +32,7 @@ export default function Dashboard() {
     { label: 'Total Users', value: stats.totalUsers ?? 0, icon: Users, color: 'var(--info)', iconBg: 'rgba(59,130,246,0.12)' },
     { label: 'Total Artists', value: stats.totalArtists ?? 0, icon: Music2, color: 'var(--accent)', iconBg: 'var(--accent-glow)' },
     { label: 'Pending Applications', value: stats.pendingArtistsCount ?? 0, icon: UserCheck, color: 'var(--warning)', iconBg: 'rgba(245,158,11,0.12)', to: '/artists?status=PENDING' },
+    { label: 'Live Artists', value: stats.liveArtistsCount ?? 0, icon: UserCheck, color: 'var(--success)', iconBg: 'rgba(16,185,129,0.12)', to: '/artists?status=APPROVED' },
     { label: 'Total Bookings', value: stats.totalBookings ?? 0, icon: CalendarCheck, color: 'var(--success)', iconBg: 'rgba(16,185,129,0.12)' },
     { label: 'Total Revenue', value: `₹${(stats.totalRevenue ?? 0).toLocaleString('en-IN')}`, icon: IndianRupee, color: 'var(--warning)', iconBg: 'rgba(245,158,11,0.12)' },
   ];

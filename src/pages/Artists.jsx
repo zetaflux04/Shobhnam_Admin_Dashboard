@@ -102,6 +102,15 @@ export default function Artists() {
     return <span className={`badge ${map[s] || 'badge-default'}`}>{s}</span>;
   };
 
+  const getStageLabel = (artist) => {
+    const progress = artist?.onboardingProgress || {};
+    if (progress.allDone || artist?.isLive) return 'All done';
+    if (progress.verified || artist?.status === 'APPROVED') return 'Verified';
+    if (progress.accountSetup) return 'Account setup';
+    if (progress.applied) return 'Applied';
+    return 'Draft';
+  };
+
   const requireCharacter = expertise.toLowerCase().includes('ramleela');
   const canSubmit = useMemo(() => {
     return (
@@ -259,6 +268,7 @@ export default function Artists() {
                       <th>Category</th>
                       <th>City</th>
                       <th>Status</th>
+                      <th>Onboarding</th>
                       <th>Actions</th>
                     </tr>
                   </thead>
@@ -270,6 +280,7 @@ export default function Artists() {
                         <td>{a.category || '-'}</td>
                         <td>{a.location?.city || '-'}</td>
                         <td>{statusBadge(a.status || 'PENDING')}</td>
+                        <td>{getStageLabel(a)}</td>
                         <td>
                           <div style={{ display: 'flex', gap: 6 }}>
                             {a.status !== 'APPROVED' && (
