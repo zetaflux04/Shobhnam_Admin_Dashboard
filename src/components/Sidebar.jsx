@@ -4,6 +4,7 @@ import {
     Landmark,
     LogOut,
     Music2,
+    Package,
     Star,
     Tag,
     Users
@@ -17,6 +18,7 @@ const navItems = [
   { to: '/artists', label: 'Artists', icon: Music2 },
   { to: '/bank-verifications', label: 'Bank Verifications', icon: Landmark },
   { to: '/bookings', label: 'Bookings', icon: CalendarCheck },
+  { to: '/orders', label: 'Orders', icon: Package },
   { to: '/categories', label: 'Categories', icon: Tag },
   { to: '/reviews', label: 'Reviews', icon: Star },
 ];

@@ -61,10 +61,14 @@ export default function Bookings() {
     }
   };
 
-  const handleUnassignArtist = async (bookingId) => {
+  const handleUnassignArtist = async (bookingId, artistId) => {
+    if (!artistId) {
+      toast.error('Artist is required');
+      return;
+    }
     setAssigningBookingId(bookingId);
     try {
-      await adminBookingApi.unassignArtist(bookingId);
+      await adminBookingApi.unassignArtist(bookingId, { artistId });
       toast.success('Artist unassigned');
       fetchBookings(pagination.page);
     } catch (err) {
@@ -86,6 +90,12 @@ export default function Bookings() {
   };
 
   const formatDate = (d) => (d ? new Date(d).toLocaleDateString('en-IN') : '-');
+  const getAssignedArtists = (booking) => {
+    const entries = Array.isArray(booking.assignedArtists) ? booking.assignedArtists.filter((entry) => entry?.artist) : [];
+    if (entries.length) return entries;
+    if (booking.artist) return [{ artist: booking.artist, assignedAt: booking.assignment?.assignedAt, source: booking.assignment?.source }];
+    return [];
+  };
 
   return (
     <div className="page-content">
@@ -125,7 +135,7 @@ export default function Bookings() {
                   <thead>
                     <tr>
                       <th>User</th>
-                      <th>Artist</th>
+                      <th>Assigned Artists</th>
                       <th>Date</th>
                       <th>Amount</th>
                       <th>Status</th>
@@ -136,31 +146,55 @@ export default function Bookings() {
                   <tbody>
                     {bookings.map((b) => (
                       <tr key={b._id}>
+                        {(() => {
+                          const assignedArtists = getAssignedArtists(b);
+                          const assignedArtistIds = new Set(
+                            assignedArtists.map((entry) => String(entry.artist?._id || entry.artist))
+                          );
+                          const availableArtists = approvedArtists.filter((artist) => !assignedArtistIds.has(String(artist._id)));
+
+                          return (
+                            <>
                         <td className="td-main">{b.user?.name || '-'}</td>
-                        <td>{b.artist?.name || '-'}</td>
+                        <td>{assignedArtists.map((entry) => entry.artist?.name).filter(Boolean).join(', ') || '-'}</td>
                         <td>{formatDate(b.eventDetails?.date)}</td>
                         <td>₹{(b.pricing?.agreedPrice ?? 0).toLocaleString('en-IN')}</td>
                         <td>{statusBadge(b.status)}</td>
                         <td>
-                          {b.artist ? (
-                            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                              <span>{b.artist.name}</span>
-                              <button
-                                className="btn btn-ghost btn-sm"
-                                onClick={() => handleUnassignArtist(b._id)}
-                                disabled={assigningBookingId === b._id}
-                              >
-                                Unassign
-                              </button>
-                            </div>
-                          ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            {assignedArtists.length > 0 && (
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                                {assignedArtists.map((entry) => (
+                                  <span
+                                    key={`${b._id}-${entry.artist?._id || entry.artist}`}
+                                    style={{
+                                      border: '1px solid var(--border)',
+                                      borderRadius: 999,
+                                      padding: '4px 8px',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: 6,
+                                    }}
+                                  >
+                                    {entry.artist?.name || 'Artist'}
+                                    <button
+                                      className="btn btn-ghost btn-sm"
+                                      onClick={() => handleUnassignArtist(b._id, entry.artist?._id || entry.artist)}
+                                      disabled={assigningBookingId === b._id}
+                                    >
+                                      Remove
+                                    </button>
+                                  </span>
+                                ))}
+                              </div>
+                            )}
                             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                               <select
                                 value={selectedArtistByBooking[b._id] || ''}
                                 onChange={(e) => setSelectedArtistByBooking((prev) => ({ ...prev, [b._id]: e.target.value }))}
                               >
                                 <option value="">Select artist</option>
-                                {approvedArtists.map((artist) => (
+                                {availableArtists.map((artist) => (
                                   <option key={artist._id} value={artist._id}>
                                     {artist.name}
                                   </option>
@@ -169,12 +203,12 @@ export default function Bookings() {
                               <button
                                 className="btn btn-primary btn-sm"
                                 onClick={() => handleAssignArtist(b._id)}
-                                disabled={assigningBookingId === b._id}
+                                disabled={assigningBookingId === b._id || availableArtists.length === 0}
                               >
-                                Assign
+                                Add Artist
                               </button>
                             </div>
-                          )}
+                          </div>
                         </td>
                         <td>
                           <button
@@ -185,6 +219,9 @@ export default function Bookings() {
                             <ChevronRight size={16} />
                           </button>
                         </td>
+                            </>
+                          );
+                        })()}
                       </tr>
                     ))}
                   </tbody>

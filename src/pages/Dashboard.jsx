@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { BarChart3, CalendarCheck, IndianRupee, Landmark, Music2, Users, UserCheck } from 'lucide-react';
+import { BarChart3, CalendarCheck, IndianRupee, Landmark, Music2, Package, Users, UserCheck } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import api from '../services/api';
 
@@ -26,6 +26,7 @@ export default function Dashboard() {
 
   const stats = data?.stats || {};
   const recentBookings = data?.recentBookings || [];
+  const recentOrders = data?.recentOrders || [];
   const bookingTrend = data?.bookingTrend || [];
 
   const statCards = [
@@ -35,6 +36,7 @@ export default function Dashboard() {
     { label: 'Pending Bank Verifications', value: stats.pendingBankVerificationsCount ?? 0, icon: Landmark, color: 'var(--warning)', iconBg: 'rgba(245,158,11,0.12)', to: '/bank-verifications' },
     { label: 'Live Artists', value: stats.liveArtistsCount ?? 0, icon: UserCheck, color: 'var(--success)', iconBg: 'rgba(16,185,129,0.12)', to: '/artists?status=APPROVED' },
     { label: 'Total Bookings', value: stats.totalBookings ?? 0, icon: CalendarCheck, color: 'var(--success)', iconBg: 'rgba(16,185,129,0.12)' },
+    { label: 'Total Orders', value: stats.totalOrders ?? 0, icon: Package, color: 'var(--info)', iconBg: 'rgba(59,130,246,0.12)', to: '/orders' },
     { label: 'Total Revenue', value: `₹${(stats.totalRevenue ?? 0).toLocaleString('en-IN')}`, icon: IndianRupee, color: 'var(--warning)', iconBg: 'rgba(245,158,11,0.12)' },
   ];
 
@@ -138,6 +140,42 @@ export default function Dashboard() {
               <div className="empty-state">
                 <CalendarCheck size={40} />
                 <p>No recent bookings</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-header">
+            <div>
+              <div className="card-title">Recent Orders & Packages</div>
+              <div className="card-subtitle">Latest 5 orders</div>
+            </div>
+          </div>
+          <div className="card-body">
+            {recentOrders.length > 0 ? (
+              <div className="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>User</th>
+                      <th>Packages</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recentOrders.map((order) => (
+                      <tr key={order._id}>
+                        <td className="td-main">{order.user?.name || '-'}</td>
+                        <td>{(order.items || []).map((item) => item.packageTitle).join(', ') || '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="empty-state">
+                <Package size={40} />
+                <p>No recent orders</p>
               </div>
             )}
           </div>

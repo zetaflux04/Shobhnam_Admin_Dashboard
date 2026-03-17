@@ -12,6 +12,12 @@ export default function BookingDetail() {
   const [approvedArtists, setApprovedArtists] = useState([]);
   const [selectedArtistId, setSelectedArtistId] = useState('');
   const [assigning, setAssigning] = useState(false);
+  const getAssignedArtists = (bookingData) => {
+    const entries = Array.isArray(bookingData?.assignedArtists) ? bookingData.assignedArtists.filter((entry) => entry?.artist) : [];
+    if (entries.length) return entries;
+    if (bookingData?.artist) return [{ artist: bookingData.artist, assignedAt: bookingData.assignment?.assignedAt, source: bookingData.assignment?.source }];
+    return [];
+  };
 
   const fetchBooking = () => {
     setLoading(true);
@@ -75,9 +81,10 @@ export default function BookingDetail() {
   };
 
   const handleUnassignArtist = async () => {
+    if (!booking?.artist?._id) return;
     setAssigning(true);
     try {
-      await adminBookingApi.unassignArtist(id);
+      await adminBookingApi.unassignArtist(id, { artistId: booking.artist._id });
       toast.success('Artist unassigned');
       fetchBooking();
     } catch (err) {
@@ -86,6 +93,24 @@ export default function BookingDetail() {
       setAssigning(false);
     }
   };
+
+  const handleUnassignSpecificArtist = async (artistId) => {
+    if (!artistId) return;
+    setAssigning(true);
+    try {
+      await adminBookingApi.unassignArtist(id, { artistId });
+      toast.success('Artist unassigned');
+      fetchBooking();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to unassign artist');
+    } finally {
+      setAssigning(false);
+    }
+  };
+
+  const assignedArtists = getAssignedArtists(booking);
+  const assignedArtistIds = new Set(assignedArtists.map((entry) => String(entry.artist?._id || entry.artist)));
+  const availableArtists = approvedArtists.filter((artist) => !assignedArtistIds.has(String(artist._id)));
 
   return (
     <div className="page-content">
@@ -127,7 +152,7 @@ export default function BookingDetail() {
           </div>
           <div className="card-body">
             <div className="detail-item">
-              <div className="detail-label">Name</div>
+              <div className="detail-label">Primary Artist</div>
               <div className="detail-value">{booking.artist?.name || '-'}</div>
             </div>
             <div className="detail-item">
@@ -146,22 +171,59 @@ export default function BookingDetail() {
               <div className="detail-label">Assignment Source</div>
               <div className="detail-value">{booking.assignment?.source || '-'}</div>
             </div>
+            <div className="detail-item">
+              <div className="detail-label">Assigned Artists</div>
+              <div className="detail-value">
+                {assignedArtists.length === 0 ? (
+                  '-'
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {assignedArtists.map((entry) => (
+                      <div
+                        key={entry.artist?._id || entry.artist}
+                        style={{
+                          border: '1px solid var(--border)',
+                          borderRadius: 8,
+                          padding: '8px 10px',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          gap: 10,
+                        }}
+                      >
+                        <div>
+                          <div>{entry.artist?.name || 'Artist'}</div>
+                          <div style={{ fontSize: 12, opacity: 0.7 }}>{entry.artist?.phone || ''}</div>
+                        </div>
+                        <button
+                          className="btn btn-ghost btn-sm"
+                          onClick={() => handleUnassignSpecificArtist(entry.artist?._id || entry.artist)}
+                          disabled={assigning}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
               <select value={selectedArtistId} onChange={(e) => setSelectedArtistId(e.target.value)}>
                 <option value="">Select approved artist</option>
-                {approvedArtists.map((artist) => (
+                {availableArtists.map((artist) => (
                   <option key={artist._id} value={artist._id}>
                     {artist.name} ({artist.phone})
                   </option>
                 ))}
               </select>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn btn-primary btn-sm" onClick={handleAssignArtist} disabled={assigning}>
-                  Assign Artist
+                <button className="btn btn-primary btn-sm" onClick={handleAssignArtist} disabled={assigning || availableArtists.length === 0}>
+                  Add Artist
                 </button>
                 {booking.artist && (
                   <button className="btn btn-ghost btn-sm" onClick={handleUnassignArtist} disabled={assigning}>
-                    Unassign
+                    Unassign Primary
                   </button>
                 )}
               </div>

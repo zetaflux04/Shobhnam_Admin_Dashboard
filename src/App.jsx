@@ -7,6 +7,8 @@ import Users from './pages/Users';
 import Artists from './pages/Artists';
 import Bookings from './pages/Bookings';
 import BookingDetail from './pages/BookingDetail';
+import Orders from './pages/Orders';
+import OrderDetail from './pages/OrderDetail';
 import Categories from './pages/Categories';
 import BankVerifications from './pages/BankVerifications';
 import Reviews from './pages/Reviews';
@@ -31,6 +33,8 @@ export default function App() {
         <Route path="bank-verifications" element={<BankVerifications />} />
         <Route path="bookings" element={<Bookings />} />
         <Route path="bookings/:id" element={<BookingDetail />} />
+        <Route path="orders" element={<Orders />} />
+        <Route path="orders/:id" element={<OrderDetail />} />
         <Route path="categories" element={<Categories />} />
         <Route path="reviews" element={<Reviews />} />
       </Route>
