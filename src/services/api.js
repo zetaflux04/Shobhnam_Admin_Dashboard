@@ -49,7 +49,8 @@ export const adminOrderApi = {
   list: (params = {}) => api.get('/admin/orders', { params: { page: 1, limit: 10, ...params } }),
   getById: (orderId) => api.get(`/admin/orders/${orderId}`),
   assignArtistToItem: (orderId, itemIndex, payload) => api.patch(`/admin/orders/${orderId}/items/${itemIndex}/assign-artist`, payload),
-  unassignArtistFromItem: (orderId, itemIndex) => api.patch(`/admin/orders/${orderId}/items/${itemIndex}/unassign-artist`),
+  unassignArtistFromItem: (orderId, itemIndex, payload = {}) =>
+    api.patch(`/admin/orders/${orderId}/items/${itemIndex}/unassign-artist`, payload),
 };
 
 export default api;

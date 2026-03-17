@@ -9,7 +9,7 @@ export default function OrderDetail() {
   const navigate = useNavigate();
   const [order, setOrder] = useState(null);
   const [approvedArtists, setApprovedArtists] = useState([]);
-  const [selectedArtistByItem, setSelectedArtistByItem] = useState({});
+  const [selectedArtistIdsByItem, setSelectedArtistIdsByItem] = useState({});
   const [loading, setLoading] = useState(true);
   const [updatingItemKey, setUpdatingItemKey] = useState('');
 
@@ -30,19 +30,41 @@ export default function OrderDetail() {
       .catch(() => setApprovedArtists([]));
   }, [id]);
 
+  const getAssignedArtistsForItem = (item) => {
+    const assigned = Array.isArray(item?.assignedArtists) ? item.assignedArtists : [];
+    const hasLegacy = item?.artist && !assigned.some((entry) => String(entry?.artist?._id || entry?.artist) === String(item.artist?._id || item.artist));
+    if (!hasLegacy) return assigned;
+
+    return [{ artist: item.artist, assignment: item.assignment }, ...assigned];
+  };
+
+  const toggleArtistSelection = (itemIndex, artistId) => {
+    setSelectedArtistIdsByItem((prev) => {
+      const current = Array.isArray(prev[itemIndex]) ? prev[itemIndex] : [];
+      const exists = current.includes(artistId);
+      return {
+        ...prev,
+        [itemIndex]: exists ? current.filter((id) => id !== artistId) : [...current, artistId],
+      };
+    });
+  };
+
   const handleAssign = async (itemIndex) => {
-    const artistId = selectedArtistByItem[itemIndex];
-    if (!artistId) {
-      toast.error('Select an artist first');
+    const artistIds = selectedArtistIdsByItem[itemIndex] || [];
+    if (!artistIds.length) {
+      toast.error('Select at least one artist first');
       return;
     }
 
     setUpdatingItemKey(`assign-${itemIndex}`);
     try {
-      await adminOrderApi.assignArtistToItem(id, itemIndex, { artistId, note: 'Assigned from order details' });
-      toast.success('Artist assigned to package');
+      await adminOrderApi.assignArtistToItem(id, itemIndex, {
+        artistIds,
+        note: 'Assigned from order details',
+      });
+      toast.success('Artist(s) assigned to package');
       fetchOrder();
-      setSelectedArtistByItem((prev) => ({ ...prev, [itemIndex]: '' }));
+      setSelectedArtistIdsByItem((prev) => ({ ...prev, [itemIndex]: [] }));
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to assign artist');
     } finally {
@@ -50,11 +72,11 @@ export default function OrderDetail() {
     }
   };
 
-  const handleUnassign = async (itemIndex) => {
-    setUpdatingItemKey(`unassign-${itemIndex}`);
+  const handleUnassign = async (itemIndex, artistId) => {
+    setUpdatingItemKey(`unassign-${itemIndex}-${artistId || 'all'}`);
     try {
-      await adminOrderApi.unassignArtistFromItem(id, itemIndex);
-      toast.success('Artist unassigned');
+      await adminOrderApi.unassignArtistFromItem(id, itemIndex, artistId ? { artistId } : {});
+      toast.success(artistId ? 'Artist unassigned' : 'All artists unassigned');
       fetchOrder();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to unassign artist');
@@ -162,36 +184,92 @@ export default function OrderDetail() {
                       <td>{item.date ? new Date(item.date).toLocaleDateString('en-IN') : '-'}</td>
                       <td>{item.slot || '-'}</td>
                       <td>₹{(item.price ?? 0).toLocaleString('en-IN')}</td>
-                      <td>{item.artist?.name || '-'}</td>
                       <td>
-                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                          <select
-                            value={selectedArtistByItem[itemIndex] || ''}
-                            onChange={(e) => setSelectedArtistByItem((prev) => ({ ...prev, [itemIndex]: e.target.value }))}
-                          >
-                            <option value="">Select artist</option>
-                            {approvedArtists.map((artist) => (
-                              <option key={artist._id} value={artist._id}>
-                                {artist.name}
-                              </option>
-                            ))}
-                          </select>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                          {getAssignedArtistsForItem(item).map((entry) => {
+                            const assignedArtist = entry?.artist;
+                            const assignedArtistId = assignedArtist?._id || assignedArtist;
+                            return (
+                              <span
+                                key={`${order._id}-${itemIndex}-${assignedArtistId}`}
+                                style={{
+                                  padding: '2px 8px',
+                                  borderRadius: 999,
+                                  border: '1px solid #d0d7de',
+                                  fontSize: 12,
+                                  backgroundColor: '#f8fafc',
+                                }}
+                              >
+                                {assignedArtist?.name || 'Assigned artist'}
+                              </span>
+                            );
+                          })}
+                          {getAssignedArtistsForItem(item).length === 0 && <span>-</span>}
+                        </div>
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', gap: 10, flexDirection: 'column' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
+                            {approvedArtists.map((artist) => {
+                              const assignedIds = getAssignedArtistsForItem(item).map((entry) =>
+                                String(entry?.artist?._id || entry?.artist)
+                              );
+                              const isAlreadyAssigned = assignedIds.includes(String(artist._id));
+                              const isSelected = (selectedArtistIdsByItem[itemIndex] || []).includes(artist._id);
+
+                              return (
+                                <label
+                                  key={artist._id}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 6,
+                                    opacity: isAlreadyAssigned ? 0.55 : 1,
+                                  }}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={isSelected}
+                                    disabled={isAlreadyAssigned}
+                                    onChange={() => toggleArtistSelection(itemIndex, artist._id)}
+                                  />
+                                  <span>{artist.name}</span>
+                                </label>
+                              );
+                            })}
+                          </div>
                           <button
                             className="btn btn-primary btn-sm"
                             disabled={updatingItemKey === `assign-${itemIndex}`}
                             onClick={() => handleAssign(itemIndex)}
                           >
-                            Assign
+                            Assign Selected
                           </button>
-                          {item.artist && (
-                            <button
-                              className="btn btn-ghost btn-sm"
-                              disabled={updatingItemKey === `unassign-${itemIndex}`}
-                              onClick={() => handleUnassign(itemIndex)}
-                            >
-                              Unassign
-                            </button>
-                          )}
+                          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                            {getAssignedArtistsForItem(item).map((entry) => {
+                              const assignedArtist = entry?.artist;
+                              const assignedArtistId = assignedArtist?._id || assignedArtist;
+                              return (
+                                <button
+                                  key={`remove-${order._id}-${itemIndex}-${assignedArtistId}`}
+                                  className="btn btn-ghost btn-sm"
+                                  disabled={updatingItemKey === `unassign-${itemIndex}-${assignedArtistId}`}
+                                  onClick={() => handleUnassign(itemIndex, assignedArtistId)}
+                                >
+                                  Remove {assignedArtist?.name || 'artist'}
+                                </button>
+                              );
+                            })}
+                            {getAssignedArtistsForItem(item).length > 1 && (
+                              <button
+                                className="btn btn-ghost btn-sm"
+                                disabled={updatingItemKey === `unassign-${itemIndex}-all`}
+                                onClick={() => handleUnassign(itemIndex)}
+                              >
+                                Unassign all
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </td>
                     </tr>
